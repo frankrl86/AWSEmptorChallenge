@@ -31,3 +31,47 @@ def lambda_handler(event, context):
             'body': json.dumps('Error returning the title of the URL')
         }
 ```
+
+## Second Version (Completed)
+
+■ Refactor the function to store the response body to an ​S3 bucket​.
+■ Store the extracted title as a record in a ​DynamoDB table.
+■ Return the extracted title and the S3 URL of the stored response object.
+
+Solution (Second Version):
+```bash
+def lambda_handler(event, context):
+    try:
+        url = event['url']
+        response = requests.get(url)
+        html = response.text
+        title = html[html.find('<title>') + 7: html.find('</title>')]
+
+        dynamodb = boto3.resource('dynamodb')
+        s3 = boto3.resource('s3')
+        bucket_name = "s3urls"
+        table_url = dynamodb.Table('tb_url')
+        table_url.put_item(
+            Item={
+                'url': url,
+                'title': title,
+            }
+        )
+        s3.Bucket(bucket_name).put_object(Key=url, Body=html)
+
+        return {
+            'statusCode': 200,
+            'body': json.dumps({
+                "title": title,
+                "url": url,
+            })
+        }
+    except requests.RequestException as e:
+        return
+        {
+            'statusCode': 400,
+            'body': json.dumps('Error returning Title and URL')
+        }
+```
+
+## Third Version (In Progress)
